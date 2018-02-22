@@ -7,22 +7,21 @@ using System.Collections.Generic;
 using System.Reflection;
 
 using AppKit;
+using MvvmCross.Converters;
+using MvvmCross.Plugin;
 using MvvmCross.Binding;
 using MvvmCross.Binding.Binders;
 using MvvmCross.Binding.BindingContext;
 using MvvmCross.Binding.Bindings.Target.Construction;
-using MvvmCross.Core.Platform;
-using MvvmCross.Core.ViewModels;
-using MvvmCross.Core.Views;
-using MvvmCross.Platform;
-using MvvmCross.Platform.Converters;
-using MvvmCross.Platform.Platform;
-using MvvmCross.Platform.Plugins;
-using MvvmCross.Binding.Mac;
-using MvvmCross.Mac.Views;
-using MvvmCross.Mac.Views.Presenters;
+using MvvmCross.Core;
+using MvvmCross.Platform.Mac.Binding;
+using MvvmCross.Platform.Mac.Presenters;
+using MvvmCross.Platform.Mac.Views;
+using MvvmCross.ViewModels;
+using MvvmCross.Views;
+using MvvmCross.Presenters;
 
-namespace MvvmCross.Mac.Platform
+namespace MvvmCross.Platform.Mac.Core
 {
     public abstract class MvxMacSetup
         : MvxSetup
@@ -55,11 +54,6 @@ namespace MvvmCross.Mac.Platform
         protected IMvxApplicationDelegate ApplicationDelegate
         {
             get { return _applicationDelegate; }
-        }
-
-        protected override IMvxPluginManager CreatePluginManager()
-        {
-            return new MvxPluginManager();
         }
 
         protected override IMvxNameMapping CreateViewToViewModelNaming()

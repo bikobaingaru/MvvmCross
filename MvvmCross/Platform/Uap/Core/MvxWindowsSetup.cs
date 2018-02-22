@@ -2,27 +2,28 @@
 // The .NET Foundation licenses this file to you under the MS-PL license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
-using Windows.UI.Xaml.Controls;
-using MvvmCross.Core.Platform;
-using MvvmCross.Core.ViewModels;
-using MvvmCross.Core.Views;
-using MvvmCross.Platform;
-using MvvmCross.Platform.Exceptions;
-using MvvmCross.Platform.Platform;
-using MvvmCross.Platform.Plugins;
-using MvvmCross.Uwp.Views;
-using MvvmCross.Uwp.Views.Suspension;
-using MvvmCross.Platform.Converters;
-using MvvmCross.Binding.Bindings.Target.Construction;
-using MvvmCross.Binding.BindingContext;
-using MvvmCross.Binding;
-using MvvmCross.Binding.Uwp;
-using MvvmCross.Binding.Binders;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
+using MvvmCross.Converters;
+using MvvmCross.Exceptions;
+using MvvmCross.Plugin;
+using MvvmCross.Core;
+using MvvmCross.Platform.Uap.Binding;
+using MvvmCross.Platform.Uap.Presenters;
+using MvvmCross.Platform.Uap.Views;
+using MvvmCross.Platform.Uap.Views.Suspension;
+using MvvmCross.ViewModels;
+using MvvmCross.Views;
+using Windows.ApplicationModel.Activation;
+using Windows.UI.Xaml.Controls;
+using MvvmCross.Binding;
+using MvvmCross.Binding.BindingContext;
+using MvvmCross.Binding.Bindings.Target.Construction;
+using MvvmCross.Binding.Binders;
+using MvvmCross.Presenters;
 
-namespace MvvmCross.Uwp.Platform
+namespace MvvmCross.Platform.Uap.Core
 {
     public abstract class MvxWindowsSetup
         : MvxSetup
@@ -30,6 +31,12 @@ namespace MvvmCross.Uwp.Platform
         private readonly IMvxWindowsFrame _rootFrame;
         private readonly string _suspensionManagerSessionStateKey;
         private IMvxWindowsViewPresenter _presenter;
+
+        protected MvxWindowsSetup(Frame rootFrame, IActivatedEventArgs activatedEventArgs,
+            string suspensionManagerSessionStateKey = null) : this(rootFrame, suspensionManagerSessionStateKey)
+        {
+            ActivationArguments = activatedEventArgs;
+        }
 
         protected MvxWindowsSetup(Frame rootFrame, string suspensionManagerSessionStateKey = null)
             : this(new MvxWrappedFrame(rootFrame))
@@ -61,11 +68,6 @@ namespace MvvmCross.Uwp.Platform
         protected virtual IMvxSuspensionManager CreateSuspensionManager()
         {
             return new MvxSuspensionManager();
-        }
-
-        protected override IMvxPluginManager CreatePluginManager()
-        {
-            return new MvxFilePluginManager(new List<string>() { ".Uwp", ".WindowsCommon" });
         }
 
         protected sealed override IMvxViewsContainer CreateViewsContainer()
@@ -151,7 +153,9 @@ namespace MvvmCross.Uwp.Platform
             // this base class does nothing
         }
 
-        protected virtual List<Type> ValueConverterHolders => new List<Type>();
+        protected IActivatedEventArgs ActivationArguments { get; }
+
+        protected virtual List<Type> ValueConverterHolders => new List<Type>();        
 
         protected virtual IEnumerable<Assembly> ValueConverterAssemblies
         {
@@ -162,7 +166,7 @@ namespace MvvmCross.Uwp.Platform
                 toReturn.AddRange(GetViewAssemblies());
                 return toReturn;
             }
-        }
+        }       
 
         protected virtual MvxBindingBuilder CreateBindingBuilder()
         {

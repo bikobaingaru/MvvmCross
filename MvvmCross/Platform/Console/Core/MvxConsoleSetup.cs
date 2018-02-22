@@ -2,15 +2,13 @@
 // The .NET Foundation licenses this file to you under the MS-PL license.
 // See the LICENSE file in the project root for more information.
 
-using MvvmCross.Console.Views;
-using MvvmCross.Core.Platform;
-using MvvmCross.Core.ViewModels;
-using MvvmCross.Core.Views;
-using MvvmCross.Platform;
-using MvvmCross.Platform.Platform;
-using MvvmCross.Platform.Plugins;
+using MvvmCross.Plugin;
+using MvvmCross.Core;
+using MvvmCross.Platform.Console.Views;
+using MvvmCross.ViewModels;
+using MvvmCross.Views;
 
-namespace MvvmCross.Console.Platform
+namespace MvvmCross.Platform.Console.Core
 {
     public abstract class MvxConsoleSetup
         : MvxSetup
@@ -47,12 +45,6 @@ namespace MvvmCross.Console.Platform
         protected override void InitializeLastChance()
         {
             InitializeMessagePump();
-        }
-
-        protected override IMvxPluginManager CreatePluginManager()
-        {
-            // Console is 'full .net' - so uses the same plugins as Wpf
-            return new MvxFilePluginManager(".Wpf", string.Empty);
         }
     }
 }

@@ -1,5 +1,6 @@
 #tool nuget:?package=GitVersion.CommandLine
 #tool nuget:?package=vswhere
+#addin nuget:?package=Cake.Figlet
 #addin nuget:?package=Cake.Incubator&version=1.7.1
 #addin nuget:?package=Cake.Git&version=0.16.1
 #addin nuget:?package=Polly
@@ -13,6 +14,34 @@ var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
 
 var isRunningOnAppVeyor = AppVeyor.IsRunningOnAppVeyor;
+GitVersion versionInfo = null;
+
+
+Setup(context => {
+    versionInfo = context.GitVersion(new GitVersionSettings {
+        UpdateAssemblyInfo = true,
+        OutputType = GitVersionOutput.Json
+    });
+
+    if (isRunningOnAppVeyor)
+    {
+        var buildNumber = AppVeyor.Environment.Build.Number;
+        AppVeyor.UpdateBuildVersion(versionInfo.InformationalVersion
+            + "-" + buildNumber);
+    }
+
+    var cakeVersion = typeof(ICakeContext).Assembly.GetName().Version.ToString();
+
+    Information(Figlet("MvvmCross"));
+    Information("Building version {0}, ({1}, {2}) using version {3} of Cake.",
+        versionInfo.SemVer,
+        configuration,
+        target,
+        cakeVersion);
+
+    Debug("Will push NuGet packages {0}", 
+        ShouldPushNugetPackages(versionInfo.BranchName));
+});
 
 Task("Clean").Does(() =>
 {
@@ -21,24 +50,6 @@ Task("Clean").Does(() =>
     CleanDirectories(outputDir.FullPath);
 
     EnsureDirectoryExists(outputDir);
-});
-
-GitVersion versionInfo = null;
-Task("Version").Does(() => {
-    versionInfo = GitVersion(new GitVersionSettings {
-        UpdateAssemblyInfo = true,
-        OutputType = GitVersionOutput.Json
-    });
-
-    Information("GitVersion -> {0}", versionInfo.Dump());
-});
-
-Task("UpdateAppVeyorBuildNumber")
-    .IsDependentOn("Version")
-    .WithCriteria(() => isRunningOnAppVeyor)
-    .Does(() =>
-{
-    AppVeyor.UpdateBuildVersion(versionInfo.InformationalVersion);
 });
 
 FilePath msBuildPath;
@@ -58,10 +69,17 @@ Task("Restore")
     MSBuild(sln, settings => settings.WithTarget("Restore"));
 });
 
+Task("PatchBuildProps")
+    .Does(() => 
+{
+    var buildProp = new FilePath("./Directory.build.props");
+    XmlPoke(buildProp, "//Project/PropertyGroup/Version", versionInfo.SemVer);
+});
+
 Task("Build")
     .IsDependentOn("ResolveBuildTools")
     .IsDependentOn("Clean")
-    .IsDependentOn("UpdateAppVeyorBuildNumber")
+    .IsDependentOn("PatchBuildProps")
     .IsDependentOn("Restore")
     .Does(() =>  {
 
@@ -90,7 +108,7 @@ Task("UnitTest")
 {
     EnsureDirectoryExists(outputDir + "/Tests/");
 
-    var testPaths = GetFiles("./MvvmCross.Tests/*.UnitTest/*.UnitTest.csproj");
+    var testPaths = GetFiles("./UnitTests/*.UnitTest/*.UnitTest.csproj");
     var testsFailed = false;
     foreach(var project in testPaths)
     {
@@ -121,17 +139,9 @@ Task("UnitTest")
 Task("PublishPackages")
     .WithCriteria(() => !BuildSystem.IsLocalBuild)
     .WithCriteria(() => IsRepository("mvvmcross/mvvmcross"))
-    .WithCriteria(() => 
-        StringComparer.OrdinalIgnoreCase.Equals(versionInfo.BranchName, "develop") || 
-        IsMasterOrReleases())
+    .WithCriteria(() => ShouldPushNugetPackages(versionInfo.BranchName))
     .Does (() =>
 {
-    if (StringComparer.OrdinalIgnoreCase.Equals(versionInfo.BranchName, "master") && !IsTagged())
-    {
-        Information("Packages will not be published as this release has not been tagged.");
-        return;
-    }
-
     // Resolve the API key.
     var nugetKeySource = GetNugetKeyAndSource();
     var apiKey = nugetKeySource.Item1;
@@ -140,7 +150,7 @@ Task("PublishPackages")
     var nugetFiles = GetFiles("MvvmCross*/**/bin/" + configuration + "/**/*.nupkg");
 
     var policy = Policy
-  		.Handle<Exception>()
+        .Handle<Exception>()
         .WaitAndRetry(5, retryAttempt => 
             TimeSpan.FromSeconds(Math.Pow(1.5, retryAttempt)));
 
@@ -189,12 +199,21 @@ Task("Default")
 
 RunTarget(target);
 
-bool IsMasterOrReleases()
+bool ShouldPushNugetPackages(string branchName)
 {
-    if (StringComparer.OrdinalIgnoreCase.Equals(versionInfo.BranchName, "master"))
+    if (StringComparer.OrdinalIgnoreCase.Equals(branchName, "develop"))
         return true;
 
-    if (versionInfo.BranchName.Contains("releases/"))
+    return IsMasterOrReleases(branchName) && IsTagged().Item1;
+}
+
+bool IsMasterOrReleases(string branchName)
+{
+    if (StringComparer.OrdinalIgnoreCase.Equals(branchName, "master"))
+        return true;
+
+    if (branchName.StartsWith("release/", StringComparison.OrdinalIgnoreCase) ||
+        branchName.StartsWith("releases/", StringComparison.OrdinalIgnoreCase))
         return true;
 
     return false;
@@ -229,7 +248,7 @@ bool IsRepository(string repoName)
     }
 }
 
-bool IsTagged()
+Tuple<bool, string> IsTagged()
 {
     var path = MakeAbsolute(sln).GetDirectory().FullPath;
     using (var repo = new LibGit2Sharp.Repository(path))
@@ -240,12 +259,12 @@ bool IsTagged()
         var tag = repo.Tags.FirstOrDefault(t => t.Target.Sha == headSha);
         if (tag == null)
         {
-            Information("HEAD is not tagged");
-            return false;
+            Debug("HEAD is not tagged");
+            return Tuple.Create<bool, string>(false, null);
         }
 
-        Information("HEAD is tagged: {0}", tag.FriendlyName);
-        return true;
+        Debug("HEAD is tagged: {0}", tag.FriendlyName);
+        return Tuple.Create<bool, string>(true, tag.FriendlyName);
     }
 }
 
@@ -265,7 +284,7 @@ Tuple<string, string> GetNugetKeyAndSource()
             apiKeyKey = "NUGET_APIKEY_DEVELOP";
             sourceKey = "NUGET_SOURCE_DEVELOP";
         }
-        else if (IsMasterOrReleases())
+        else if (IsMasterOrReleases(versionInfo.BranchName))
         {
             apiKeyKey = "NUGET_APIKEY_MASTER";
             sourceKey = "NUGET_SOURCE_MASTER";

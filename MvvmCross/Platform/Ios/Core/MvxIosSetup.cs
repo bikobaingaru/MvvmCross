@@ -5,25 +5,23 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using MvvmCross.Converters;
+using MvvmCross.Plugin;
 using MvvmCross.Binding;
 using MvvmCross.Binding.Binders;
 using MvvmCross.Binding.BindingContext;
 using MvvmCross.Binding.Bindings.Target.Construction;
-using MvvmCross.Binding.iOS;
-using MvvmCross.Core.Platform;
-using MvvmCross.Core.ViewModels;
-using MvvmCross.Core.Views;
-using MvvmCross.iOS.Views;
-using MvvmCross.iOS.Views.Presenters;
-using MvvmCross.Platform;
-using MvvmCross.Platform.Converters;
-using MvvmCross.Platform.iOS.Platform;
-using MvvmCross.Platform.iOS.Views;
-using MvvmCross.Platform.Platform;
-using MvvmCross.Platform.Plugins;
+using MvvmCross.Core;
+using MvvmCross.Platform.Ios;
+using MvvmCross.Platform.Ios.Binding;
+using MvvmCross.Platform.Ios.Presenters;
+using MvvmCross.Platform.Ios.Views;
+using MvvmCross.ViewModels;
+using MvvmCross.Views;
 using UIKit;
+using MvvmCross.Presenters;
 
-namespace MvvmCross.iOS.Platform
+namespace MvvmCross.Platform.Ios.Core
 {
     public abstract class MvxIosSetup
         : MvxSetup
@@ -48,11 +46,6 @@ namespace MvvmCross.iOS.Platform
         protected UIWindow Window => _window;
 
         protected IMvxApplicationDelegate ApplicationDelegate => _applicationDelegate;
-
-        protected override IMvxPluginManager CreatePluginManager()
-        {
-            return new MvxPluginManager();
-        }
 
         protected sealed override IMvxViewsContainer CreateViewsContainer()
         {

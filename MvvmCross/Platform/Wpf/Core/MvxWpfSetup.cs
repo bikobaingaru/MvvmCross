@@ -3,17 +3,16 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Windows.Threading;
-using MvvmCross.Core.Platform;
-using MvvmCross.Core.ViewModels;
-using MvvmCross.Core.Views;
-using MvvmCross.Platform;
-using MvvmCross.Platform.Platform;
-using MvvmCross.Platform.Plugins;
-using MvvmCross.Wpf.Views;
-using MvvmCross.Wpf.Views.Presenters;
 using System.Windows.Controls;
+using MvvmCross.Plugin;
+using MvvmCross.Core;
+using MvvmCross.Platform.Wpf.Presenters;
+using MvvmCross.Platform.Wpf.Views;
+using MvvmCross.ViewModels;
+using MvvmCross.Views;
+using MvvmCross.Presenters;
 
-namespace MvvmCross.Wpf.Platform
+namespace MvvmCross.Platform.Wpf.Core
 {
     public abstract class MvxWpfSetup
         : MvxSetup
@@ -76,11 +75,6 @@ namespace MvvmCross.Wpf.Platform
             var presenter = Presenter;
             Mvx.RegisterSingleton(presenter);
             Mvx.RegisterSingleton<IMvxViewPresenter>(presenter);
-        }
-
-        protected override IMvxPluginManager CreatePluginManager()
-        {
-            return new MvxFilePluginManager(".Wpf", string.Empty);
         }
 
         protected override IMvxNameMapping CreateViewToViewModelNaming()

@@ -5,30 +5,26 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using Android.App;
 using Android.Content;
 using Android.Views;
+using MvvmCross.Converters;
+using MvvmCross.Exceptions;
+using MvvmCross.IoC;
 using MvvmCross.Binding;
 using MvvmCross.Binding.Binders;
 using MvvmCross.Binding.BindingContext;
 using MvvmCross.Binding.Bindings.Target.Construction;
-using MvvmCross.Binding.Droid;
-using MvvmCross.Binding.Droid.Binders.ViewTypeResolvers;
-using MvvmCross.Binding.Droid.Views;
-using MvvmCross.Core.Platform;
-using MvvmCross.Core.ViewModels;
-using MvvmCross.Core.Views;
-using MvvmCross.Droid.Views;
-using MvvmCross.Platform;
-using MvvmCross.Platform.Converters;
-using MvvmCross.Platform.Droid;
-using MvvmCross.Platform.Droid.Platform;
-using MvvmCross.Platform.Exceptions;
-using MvvmCross.Platform.IoC;
-using MvvmCross.Platform.Platform;
-using MvvmCross.Platform.Plugins;
+using MvvmCross.Core;
+using MvvmCross.Platform.Android.Binding;
+using MvvmCross.Platform.Android.Binding.Binders.ViewTypeResolvers;
+using MvvmCross.Platform.Android.Binding.Views;
+using MvvmCross.Platform.Android.Presenters;
+using MvvmCross.Platform.Android.Views;
+using MvvmCross.ViewModels;
+using MvvmCross.Views;
+using MvvmCross.Presenters;
 
-namespace MvvmCross.Droid.Platform
+namespace MvvmCross.Platform.Android.Core
 {
     public abstract class MvxAndroidSetup
         : MvxSetup, IMvxAndroidGlobals
@@ -50,11 +46,6 @@ namespace MvvmCross.Droid.Platform
         public Context ApplicationContext => _applicationContext;
 
         #endregion IMvxAndroidGlobals Members
-
-        protected override IMvxPluginManager CreatePluginManager()
-        {
-            return new MvxFilePluginManager(".Droid", ".dll");
-        }
 
         protected override void InitializePlatformServices()
         {
